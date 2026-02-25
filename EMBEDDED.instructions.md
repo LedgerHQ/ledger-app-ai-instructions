@@ -35,6 +35,27 @@ the compiler and linters cannot enforce.
   ECC, BIP-32, etc.) manually. Use the SDK's hardware-accelerated `cx_*` (crypto)
   and `os_*` (system) functions. They provide side-channel protection that software
   implementations cannot match.
+- **Secrets must not be exported or shown.** Private keys and seeds derived from the
+  device seed must never be stored persistently, exported to the host, or displayed
+  on screen. Only public material (public keys, addresses) may leave the device.
+- **Verify message structure before signing.** The structural integrity of a message or
+  transaction must be fully validated before performing any signing operation. Never
+  sign attacker-controlled raw bytes.
+- **User-supplied messages must use a prefix.** If arbitrary user-supplied data is to
+  be signed, it must be prefixed with a domain-specific tag (e.g., `\x19Ethereum
+  Signed Message:\n`) to prevent replaying signatures as transactions.
+- **Blind signing must be disabled by default.** If blind signing is implemented, it
+  must be opt-in (disabled in settings by default) and must not apply to basic coin
+  transfers, which must always be clear-signed.
+- **The client must not freely manipulate keypairs.** The host application must not be
+  able to request arbitrary key derivations or signing operations without the user
+  being fully informed and approving each one.
+- **Authenticated encryption for cached data.** Any sensitive data cached on the client
+  side must be protected with an authenticated encryption scheme.
+- **State management.** Application state must be properly initialized before use and
+  explicitly cleared (with `explicit_bzero` or equivalent) when finalized or when an
+  error occurs. In multi-step operations (chunked APDU flows, signing workflows), the
+  correct ordering of steps must be enforced — out-of-order messages must be rejected.
 
 ## APDU Handling
 

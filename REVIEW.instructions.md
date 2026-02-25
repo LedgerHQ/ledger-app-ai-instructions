@@ -51,6 +51,35 @@ Any desynchronization between these three is at least 🟧 HIGH.
 - **New `THROW` calls** — Introduction of the deprecated exception mechanism: 🟧 HIGH.
 - **Custom crypto** — Any manual implementation of standard algorithms instead of
   using `cx_*` / `os_*` SDK functions: 🟥 CRITICAL.
+- **Secrets exported or shown** — Private keys or seeds are returned to the host,
+  stored persistently beyond the operation, or displayed on screen: 🟥 CRITICAL.
+- **Unsigned message without prefix** — User-supplied data signed without a
+  domain-specific prefix (e.g., `\x19Ethereum Signed Message:\n`), enabling
+  cross-context replay: 🟥 CRITICAL.
+- **Message signed without structural validation** — A signing handler that does not
+  fully verify the structure/integrity of the payload before signing: 🟥 CRITICAL.
+- **Integer overflow / underflow** — Arithmetic on lengths, indices, or counters
+  without overflow checks (e.g., loop counter type mismatch with bound type): 🟥 CRITICAL.
+- **Format string vulnerability** — User-controlled data passed to `printf`-family
+  functions as the format string: 🟥 CRITICAL.
+- **Use of dangerous functions** — Calls to `strcpy`, `strlen` without bounds,
+  `gets`, `sprintf` (unbounded), or similar functions that cannot guarantee safety: 🟭 HIGH.
+- **Memory safety** — Memory leaks, use-after-free, or returning a
+  pointer to stack-allocated memory: 🟥 CRITICAL.
+- **Uninitialized memory returned** — Stack or heap memory that could contain
+  sensitive data (keys, seeds) returned or sent to the host without zeroing: 🟥 CRITICAL.
+- **Unchecked return values** — SDK or syscall return codes ignored, meaning errors
+  silently lead to invalid or partial states: 🟧 HIGH.
+- **State management** — Application state not initialized before use, not cleared
+  on error/completion, or out-of-order steps accepted in a multi-step APDU flow: 🟧 HIGH.
+- **Cryptographic oracle** — An attacker can learn secret-dependent information by
+  observing the app's behaviour (timing, error messages, partial outputs): 🟥 CRITICAL.
+- **Security restriction bypass** — The autolock, PIN entry, or any other OS access
+  control can be circumvented through the application: 🟥 CRITICAL.
+- **Keypair freely manipulated** — The host can request arbitrary derivation or signing
+  without per-operation user approval: 🟥 CRITICAL.
+- **No authenticated encryption for cached data** — Sensitive data cached on the
+  client is not protected with an authenticated encryption scheme: 🟧 HIGH.
 
 ## 3. Quality & Testing Audit
 

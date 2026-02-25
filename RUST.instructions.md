@@ -27,9 +27,19 @@ This codebase targets ARM Cortex-M devices with no operating system. Key implica
 
 - Prefer `&str` over `String`, fixed-size arrays over `Vec`.
 - Use `Option<T>` and `Result<T, E>` for all fallible operations — never `panic!`
-  or `unwrap()` in application code.
+  or `unwrap()` in application code. Handle all `Result` return values explicitly —
+  silently discarding an `Err` is a bug.
 - Prefer borrowing and zero-copy parsing to minimize RAM usage.
 - Use enums for state machines and protocol variants instead of integer flags.
+- **Arithmetic overflow/underflow must be handled explicitly.** Use `saturating_add` /
+  `saturating_sub` / `checked_add` / `checked_sub` (or equivalent `_x` variants) for
+  all arithmetic that could overflow. Do not rely on debug overflow detection.
+- **`unsafe` blocks must be justified and documented.** Every `unsafe { ... }` block
+  must have a comment explaining why the invariant is upheld. Minimise the scope of
+  `unsafe` to the smallest possible expression.
+- **Test utility code must be gated.** Any helper, mock, or utility used only for
+  testing must be guarded by `#[cfg(test)]` to ensure it is never compiled into the
+  production binary.
 
 ## Custom Test Harness
 
