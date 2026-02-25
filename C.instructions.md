@@ -1,6 +1,6 @@
 ---
 description: "Ledger embedded C application development rules and build workflow"
-applyTo: "**/*.c,**/*.h"
+applyTo: "**/*"
 ---
 
 # Ledger Embedded C Rules

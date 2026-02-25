@@ -1,7 +1,6 @@
 ---
 description: "Ledger application code review checklist — security, coherence, and quality gate"
 applyTo: "**/*"
-excludeAgent: "coding-agent"
 ---
 
 # Ledger Code Review Rules
@@ -62,7 +61,7 @@ Any desynchronization between these three is at least 🟧 HIGH.
 - **Incomplete device matrix** — Tests not covering all devices listed in
   `[app].devices` in `ledger_app.toml`: 🟧 HIGH.
 - **Missing error-path tests** — No tests for invalid inputs, wrong P1/P2, or user
-  rejection (`0x6985`): 🟧 HIGH.
+  rejection: 🟧 HIGH.
 - **Test readability** — Unclear variable names, missing comments on non-obvious
   assertions: 🟨 WARNING.
 

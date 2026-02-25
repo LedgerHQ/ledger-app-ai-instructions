@@ -1,6 +1,6 @@
 ---
 description: "Ledger application test writing rules using Ragger, Pytest, and Speculos"
-applyTo: "**/*.py"
+applyTo: "**/*"
 ---
 
 # Ledger Test Writing Rules (Python)

@@ -1,6 +1,6 @@
 ---
 description: "Ledger-specific Rust rules and custom test harness for embedded targets"
-applyTo: "**/*.rs"
+applyTo: "**/*"
 ---
 
 # Ledger Embedded Rust Rules
