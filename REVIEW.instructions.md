@@ -28,8 +28,15 @@ Verify that the three components tell the same story:
 
 The C and Rust files hold the logic of the embedded application. When reviewing these files, focus on best practices for embedded development, such as memory management, performance optimization, and security considerations. Ensure that the code is well-structured, with clear separation of concerns and modular design. Look for consistent naming conventions, thorough documentation, and adherence to coding standards specific to C and Rust, as well as Ledger specific guidelines.
 
+Pay attention to the following code quality items that indirectly impact security:
+- **Magic numbers**: Prefer enums, macros, or `sizeof`-based expressions over raw numeric literals.
+- **State management**: Application state must be properly initialized, cleared/erased on finalization or error, and multi-step operations must enforce correct ordering.
+- **Complexity**: Flag functions with high cyclomatic complexity or excessive length — they are harder to audit and more error-prone.
+
 ## Python test code review guidelines
 
 The Python code is only used for testing and is not part of the embedded application. When reviewing test files, focus on coverage and maintainability rather than embedded application best practices. Ensure that the tests are comprehensive, well-structured, and easy to understand. Look for clear assertions, proper use of testing frameworks, and meaningful test cases that effectively validate the functionality of the embedded application.
 
 Ensure new features are covered by functional tests, checking the valid expected behaviors, edge cases, and potential malicious inputs.
+
+Fuzzing targets should be implemented at least for parsers and critical functions. For Ethereum plugins, the generic fuzzing target from the boilerplate should be integrated.
