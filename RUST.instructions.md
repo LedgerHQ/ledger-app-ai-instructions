@@ -50,7 +50,9 @@ These are general Rust guidelines and may not all apply to the embedded/no_std p
 - Don't rely on global mutable state—use dependency injection or thread-safe containers.
 - Avoid deeply nested logic—refactor with functions or combinators.
 - Don't ignore warnings—treat them as errors during CI.
-- Avoid `unsafe` unless required and fully documented.
+- Avoid `unsafe` unless required and fully documented. All `unsafe` blocks must be justified in a comment.
+- Handle arithmetic overflows/underflows explicitly using `saturating_*`, `checked_*`, or manual bounds checks rather than relying on default wrapping behavior.
+- Dependencies must be checked with `cargo audit` to ensure no known impactful vulnerabilities are present.
 - Don't overuse `clone()`, use borrowing instead of cloning unless ownership transfer is needed.
 - Avoid premature `collect()`, keep iterators lazy until you actually need the collection.
 - Avoid unnecessary allocations—prefer borrowing and zero-copy operations.
