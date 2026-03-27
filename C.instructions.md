@@ -15,3 +15,38 @@ applyTo: "**/*"
 - Avoid recursion to prevent stack overflow on the constrained stack.
 - Prefer `memmove`/`memset` over manual byte-by-byte loops.
 - Use `strlcpy` or explicit bounds checking when manipulating strings. Always validate `dataLength` against expected sizes before any memory copy.
+
+## Building
+
+### Configuration
+
+- Supported devices are listed in `[app].devices` inside `ledger_app.toml`. Build for **every** listed device — do NOT skip any.
+- Map each device to its SDK variable:
+
+  | `ledger_app.toml` device | Docker env variable |
+  | :--- | :--- |
+  | `nanos+` | `$NANOSP_SDK` |
+  | `nanox` | `$NANOX_SDK` |
+  | `stax` | `$STAX_SDK` |
+  | `flex` | `$FLEX_SDK` |
+  | `apex_p` | `$APEX_P_SDK` |
+
+### Docker Environment
+
+- **Image discovery:** Run `docker images | grep ledger` before any `docker run`. Do NOT assume a hardcoded image name.
+- **Common image:** `ghcr.io/ledgerhq/ledger-app-builder/ledger-app-dev-tools:latest` (includes builder, Speculos, enforcer).
+- **Volume mount:** Mount the project root to `/app` inside the container.
+- **Host OS adaptation:** Adapt Docker commands to the host OS (e.g., shell syntax for current directory, variable escaping).
+
+### Build Workflow
+
+1. **Start clean:** Begin the command chain with `make clean`.
+2. **Build all targets:** For each device in `ledger_app.toml`, run `BOLOS_SDK=<SDK_VAR> make -j`.
+3. **Preserve artifacts:** Do not run a final clean after the last build step.
+
+Execute the build yourself in the terminal. Do NOT just display commands to the user.
+
+### Fix Loop
+
+- If the build fails, read the terminal output, fix the code, and re-execute.
+- Stop ONLY when all targets build successfully.

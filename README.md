@@ -20,7 +20,7 @@ VS Code (with GitHub Copilot) will automatically discover and apply `*.instructi
 | `EMBEDDED.instructions.md` | `*.c, *.h, *.rs` | Cross-language embedded constraints (hardware, security, UI) |
 | `C.instructions.md` | `*.c, *.h` | C-specific rules, toolchain, build workflow |
 | `RUST.instructions.md` | `*.rs` | Ledger-specific Rust deviations (custom test harness, `no_std`) |
-| `PYTHON.instructions.md` | `*.py` | Test writing rules (Ragger, Speculos, snapshots) |
+| `TEST.instructions.md` | `*.py` | Test writing rules (Ragger, Speculos, snapshots) |
 | `REVIEW.instructions.md` | `*` | Code review checklist |
 
 ## Customization
