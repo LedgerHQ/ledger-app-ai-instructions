@@ -31,7 +31,7 @@ Python is used exclusively for testing Ledger device applications — it is not 
 ### Configuration
 
 - The test directory path is defined in `ledger_app.toml` under `[pytest.standalone].directory`. Do NOT hardcode it.
-- The supported devices are listed in `[app].devices` inside `ledger_app.toml`. Every listed device MUST be tested — do NOT skip any.
+- The supported devices are listed in `[app].devices` inside `ledger_app.toml` in root directory. Every listed device MUST have functional tests.
 - The `requirements.txt` is located at `<test_dir>/requirements.txt`.
 
 ### Device Mapping
