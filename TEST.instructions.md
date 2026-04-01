@@ -17,7 +17,7 @@ Python is used exclusively for testing Ledger device applications — it is not 
 
 - **No magic hex:** Do not use raw hex strings (e.g., `bytes.fromhex("050012...")`) for complex APDU payloads.
 - Use named variables (`amount`, `derivation_path`, `fee`) and `struct.pack` to construct payloads with clear semantic meaning.
-- Use a `CommandSender` abstraction (typically in `application_client/`) to encapsulate APDU construction and response parsing.
+- Use a `CommandSender` abstraction (for example in `application_client/`) to encapsulate APDU construction and response parsing.
 
 ## UI Verification
 
@@ -26,17 +26,14 @@ Python is used exclusively for testing Ledger device applications — it is not 
 - Use `navigator.navigate_and_compare()` to check screen content against reference images (Golden Snapshots).
 - Snapshots and tmp snapshots are handled by the framework, NEVER delete them manually, this is USELESS and error prone.
 
-## Running Ragger Tests
+## How to Run Ragger Tests
 
 ### Configuration
 
 - The test directory path is defined in `ledger_app.toml` under `[pytest.standalone].directory`. Do NOT hardcode it.
 - The supported devices are listed in `[app].devices` inside `ledger_app.toml` in root directory. Every listed device MUST have functional tests.
 - The `requirements.txt` is located at `<test_dir>/requirements.txt`.
-
-### Device Mapping
-
-Map `ledger_app.toml` device names to pytest `--device` values:
+- Map `ledger_app.toml` device names to pytest `--device` values:
 
 | `ledger_app.toml` | `--device` value |
 | :--- | :--- |
@@ -46,22 +43,6 @@ Map `ledger_app.toml` device names to pytest `--device` values:
 | `flex` | `flex` |
 | `apex_p` | `apex_p` |
 
-### Execution Workflow
-
-Tests MUST be executed in a two-step process:
-
-1. **Golden Run** — Generate reference snapshots for each device:
-   ```
-   pytest <test_dir>/ --tb=short -v --device <device> --golden_run
-   ```
-   Run this once per device. Use `--golden_run` sparingly to avoid silencing involuntary UI changes.
-
-2. **Verification Run** — Confirm snapshot stability and test correctness (no `--golden_run`):
-   ```
-   pytest <test_dir>/ --tb=short -v --device <device>
-   ```
-   Run this for every device. All tests must pass.
-
 ### Docker Environment
 
 - **Image discovery:** Run `docker images | grep ledger` before any `docker run`. Do NOT assume a hardcoded image name.
@@ -69,13 +50,16 @@ Tests MUST be executed in a two-step process:
 - **Volume mount:** Mount the project root to `/app` inside the container.
 - **Venv activation:** Always start with `source /opt/venv/bin/activate && pip install -r <test_dir>/requirements.txt` before running pytest.
 - **Host OS adaptation:** Adapt Docker commands to the host OS (e.g., shell syntax for current directory, variable escaping).
-- Execute tests yourself in the terminal. Do NOT just display commands to the user.
 
-### Fix Loop
+### Test command
 
-- If tests fail, read the pytest output, identify whether it is a **test bug** (wrong assertion, missing navigation) or a **code bug** (app crash, wrong SW), fix accordingly, and re-execute.
-- Do NOT ask the user to re-run. Re-execute the command yourself after fixing.
-- Stop ONLY when all tests pass on all devices.
+Run the tests in the docker environment using pytest. Example for nanox device:
+```
+pytest <test_dir>/ --tb=short -v --device nanox
+```
+
+The test framework uses snapshot navigation to ensure non regression of screens and correctness of displayed elements. The `--golden_run` argument will regenerate the snapshots: use this option conservatively to not silence screen regressions.
+Do **NOT** under **ANY** circumstance attempt to manually delete the snapshots or the temporary snapshots.
 
 ## Coverage Requirements
 
