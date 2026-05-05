@@ -60,6 +60,7 @@ pytest <test_dir>/ --tb=short -v --device nanox
 
 The test framework uses snapshot navigation to ensure non regression of screens and correctness of displayed elements. The `--golden_run` argument will regenerate the snapshots: use this option conservatively to not silence screen regressions.
 Do **NOT** under **ANY** circumstance attempt to manually delete the snapshots or the temporary snapshots.
+When iterating on tests, use `-k` to run only a subset of tests (e.g., `-k "test_signing"`) to optimize time. Run option `--collect-only` to explore existing test names.
 
 ## Coverage Requirements
 
