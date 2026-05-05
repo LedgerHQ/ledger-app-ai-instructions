@@ -11,7 +11,14 @@ cd app-example/.github/
 git submodule add <repo-url> instructions
 ```
 
-VS Code (with GitHub Copilot) will automatically discover and apply `*.instructions.md`
+Create a symbolic link at the repository root pointing to the `AGENTS.md` file in the submodule:
+
+```bash
+cd app-example/
+ln -sf .github/instructions/AGENTS.md AGENTS.md
+```
+
+This ensures AI tools that look for `AGENTS.md` at the repository root can find and follow the agent instructions.
 
 ## Files
 
