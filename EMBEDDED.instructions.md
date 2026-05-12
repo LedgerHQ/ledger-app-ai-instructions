@@ -19,6 +19,12 @@ These rules apply to all embedded code (C and Rust) running on Ledger devices.
 - If blind signing is implemented, it must be disabled by default behind a settings flag.
 - Critical and important information must be clear signed using a user-friendly format. The user must not be confused or tricked by the application workflow or displayed information.
 
+## Security and Availability
+
+- Security strictly overrides availability; the application MUST always "fail closed."
+- When encountering an unexpected issue, the application must refuse to proceed with the standard flow and return an error.
+- It is NEVER acceptable to silence a security issue to preserve availability. Even a crash is preferable to executing in an unverified or compromised state. This BANS eager patterns such as dubious fallbacks, default values, clamping, etc.
+
 ## Memory and Runtime
 
 - The RAM is limited to around 24 kilobytes. Ensure that the code is optimized for low memory usage and does not contain unnecessary allocations or unnecessarily large data structures.
