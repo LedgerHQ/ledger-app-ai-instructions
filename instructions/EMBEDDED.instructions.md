@@ -40,3 +40,10 @@ These rules apply to all embedded code (C and Rust) running on Ledger devices.
 ## APDU Handling
 
 - APDUs are the sole entry point of the application. Ensure the code treats the incoming APDUs as untrusted input and implements proper validation and error handling to prevent potential security vulnerabilities. Look for robust parsing of APDU commands, validation of input data, and appropriate responses to invalid or malicious requests.
+
+## Comments
+
+- Comments are TIMELESS and must remain true and useful years later; do not use them to describe how things **were**, nor to forward information to the AI caller.
+- Avoid comments that describe what the code is doing, unless it's doing something non-obvious. Focus on the intent and rationale behind the code rather than restating the code's functionality. Basic code understanding should come from proper variable and function names.
+- Comments should stay concise and dense in information; multiline comments should be rare.
+- Comments should respect separation of concerns; do not bring outside knowledge where it does not belong.
