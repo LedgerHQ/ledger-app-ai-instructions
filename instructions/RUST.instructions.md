@@ -95,6 +95,46 @@ Eagerly implement common traits where appropriate:
 - Functions should validate their arguments
 - All public types must implement `Debug`
 
+## How to build
+
+### Configuration
+
+- Supported devices are listed in `[app].devices` inside `ledger_app.toml`.
+- Rust apps are built per device with [`cargo-ledger`](https://github.com/LedgerHQ/cargo-ledger). The target device is selected by its cargo target name (not the `$*_SDK` environment variables used by the C/Makefile flow):
+
+  | `ledger_app.toml` device | cargo target |
+  | :--- | :--- |
+  | `nanos+` | `nanosplus` |
+  | `nanox` | `nanox` |
+  | `stax` | `stax` |
+  | `flex` | `flex` |
+  | `apex_p` | `apex_p` |
+
+- The toolchain is pinned in `rust-toolchain.toml`. Building `core`/`alloc` for the device target requires the unstable `build-std` feature, configured in `.cargo/config.toml`.
+- `.cargo/config.toml` may declare a default cargo target; commands without an explicit target build for it.
+- The application must compile without errors or warnings. Run `cargo fmt --check` and `cargo clippy` before submitting; warnings must not be silenced without a documented reason.
+
+### Docker Environment
+
+- **Image discovery:** Run `docker images | grep ledger` before any `docker run`. Do NOT assume a hardcoded image name.
+- **Common image:** `ghcr.io/ledgerhq/ledger-app-builder/ledger-app-dev-tools:latest` (includes the Rust toolchain, `cargo-ledger`, Speculos, enforcer). `cargo build` on the host will not produce a runnable binary — there is no host target.
+- **Volume mount:** Mount the project root to `/app` inside the container.
+- **Host OS adaptation:** Adapt Docker commands to the host OS (e.g., shell syntax for current directory, variable escaping).
+
+### Build command
+
+Run `cargo ledger build <TARGET>`, replacing `<TARGET>` with the cargo target for the device (output: `target/<TARGET>/release/<app-name>`):
+
+```bash
+cargo ledger build nanosplus       # one of: nanox | nanosplus | stax | flex | apex_p
+```
+
+Enable debug logging with the `debug` feature:
+
+```bash
+cargo ledger build nanosplus -- --features debug -Zunstable-options
+```
+
 ## Testing and Documentation
 
 ### Testing (Speculos / Custom Targets)
