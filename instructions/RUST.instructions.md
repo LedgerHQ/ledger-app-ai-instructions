@@ -41,6 +41,7 @@ applyTo: '**/*'
 - Avoid panics in library code—return `Result` instead.
 - Avoid deeply nested logic—refactor with functions or combinators.
 - Dependencies must be checked with `cargo audit` to ensure no known impactful vulnerabilities are present.
+- Avoid `unsafe` unless required and fully documented. All `unsafe` blocks must be justified in a comment.
 
 ## Error Handling
 
