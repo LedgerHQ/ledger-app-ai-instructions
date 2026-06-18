@@ -68,6 +68,8 @@ applyTo: '**/*'
 - The toolchain is pinned in `rust-toolchain.toml`. Building `core`/`alloc` for the device target requires the unstable `build-std` feature, configured in `.cargo/config.toml`.
 - `.cargo/config.toml` may declare a default cargo target; commands without an explicit target build for it.
 - The application must compile without errors or warnings. Run `cargo fmt --check` and `cargo clippy` before submitting; warnings must not be silenced without a documented reason.
+- Heap is 8192 bytes by default. Override via `HEAP_SIZE` env var; allowed values: 2048, 4096, 8192, 16384, 24576.
+- Tests use Ragger's snapshot navigation. **Never delete `snapshots/` or `snapshots-tmp/` manually.** Regenerate snapshots with `pytest ... --golden_run` only when a screen change is intentional.
 
 ### Docker Environment
 
