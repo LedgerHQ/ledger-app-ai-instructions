@@ -3,13 +3,7 @@ description: 'Rust programming language coding conventions and best practices'
 applyTo: '**/*'
 ---
 
-# Rust Coding Conventions and Best Practices
-
-Follow idiomatic Rust practices and community standards when writing Rust code.
-
-These instructions are based on [The Rust Book](https://doc.rust-lang.org/book/), [Rust API Guidelines](https://rust-lang.github.io/api-guidelines/), [RFC 430 naming conventions](https://github.com/rust-lang/rfcs/blob/master/text/0430-finalizing-naming-conventions.md), and the broader Rust community at [users.rust-lang.org](https://users.rust-lang.org).
-
-These are general Rust guidelines and may not all apply to the embedded/no_std portions of this codebase.
+# Ledger Embedded Rust Rules
 
 ## General Instructions
 
@@ -40,29 +34,13 @@ These are general Rust guidelines and may not all apply to the embedded/no_std p
 - Prefer borrowing (`&T`) over cloning unless ownership transfer is necessary.
 - Use `&mut T` when you need to modify borrowed data.
 - Explicitly annotate lifetimes when the compiler cannot infer them.
-- Use `Rc<T>` for single-threaded reference counting and `Arc<T>` for thread-safe reference counting.
-- Use `RefCell<T>` for interior mutability in single-threaded contexts.
 
 ## Patterns to Avoid
 
 - Don't use `unwrap()` or `expect()` unless failure is truly impossible or represents an unrecoverable state.
 - Avoid panics in library code—return `Result` instead.
-- Don't rely on global mutable state—use dependency injection or thread-safe containers.
 - Avoid deeply nested logic—refactor with functions or combinators.
-- Don't ignore warnings—treat them as errors during CI.
-- Avoid `unsafe` unless required and fully documented. All `unsafe` blocks must be justified in a comment.
-- Handle arithmetic overflows/underflows explicitly using `saturating_*`, `checked_*`, or manual bounds checks rather than relying on default wrapping behavior.
 - Dependencies must be checked with `cargo audit` to ensure no known impactful vulnerabilities are present.
-- Don't overuse `clone()`, use borrowing instead of cloning unless ownership transfer is needed.
-- Avoid premature `collect()`, keep iterators lazy until you actually need the collection.
-- Avoid unnecessary allocations—prefer borrowing and zero-copy operations.
-
-## Code Style and Formatting
-
-- Follow the Rust Style Guide and use `rustfmt` for automatic formatting.
-- Keep lines under 100 characters when possible.
-- Place function and struct documentation immediately before the item using `///`.
-- Use `cargo clippy` to catch common mistakes and enforce best practices.
 
 ## Error Handling
 
@@ -70,37 +48,14 @@ These are general Rust guidelines and may not all apply to the embedded/no_std p
 - Prefer `?` operator over `unwrap()` or `expect()` for error propagation.
 - Use `Option<T>` for values that may or may not exist.
 - Provide meaningful error messages and context.
-- Error types should be meaningful and well-behaved (implement standard traits).
 - Validate function arguments and return appropriate errors for invalid input.
-
-## API Design Guidelines
-
-### Common Traits Implementation
-Eagerly implement common traits where appropriate:
-- `Copy`, `Clone`, `Eq`, `PartialEq`, `Ord`, `PartialOrd`, `Hash`, `Debug`, `Display`, `Default`
-- Use standard conversion traits: `From`, `AsRef`, `AsMut`
-- Collections should implement `FromIterator` and `Extend`
-- Note: `Send` and `Sync` are auto-implemented by the compiler when safe; avoid manual implementation unless using `unsafe` code
-
-### Type Safety and Predictability
-- Use newtypes to provide static distinctions
-- Arguments should convey meaning through types; prefer specific types over generic `bool` parameters
-- Use `Option<T>` appropriately for truly optional values
-- Functions with a clear receiver should be methods
-- Only smart pointers should implement `Deref` and `DerefMut`
-
-### Future Proofing
-- Use sealed traits to protect against downstream implementations
-- Structs should have private fields
-- Functions should validate their arguments
-- All public types must implement `Debug`
 
 ## How to build
 
 ### Configuration
 
 - Supported devices are listed in `[app].devices` inside `ledger_app.toml`.
-- Rust apps are built per device with [`cargo-ledger`](https://github.com/LedgerHQ/cargo-ledger). The target device is selected by its cargo target name (not the `$*_SDK` environment variables used by the C/Makefile flow):
+- Rust apps are built per device with [`cargo-ledger`](https://github.com/LedgerHQ/cargo-ledger). The target device is selected by its cargo target name:
 
   | `ledger_app.toml` device | cargo target |
   | :--- | :--- |
@@ -132,54 +87,8 @@ cargo ledger build nanosplus       # one of: nanox | nanosplus | stax | flex | a
 Enable debug logging with the `debug` feature:
 
 ```bash
-cargo ledger build nanosplus -- --features debug -Zunstable-options
+cargo ledger build nanosplus -- --features debug
 ```
-
-## Testing and Documentation
-
-### Testing (Speculos / Custom Targets)
-
-This repo targets custom ARM Cortex-M devices, not standard Rust host platforms. Tests cannot
-use standard `cargo test` on the host — they must run inside the
-[Speculos](https://github.com/LedgerHQ/speculos) emulator against a device target.
-
-**Custom test harness**: The `testmacro` crate provides `test_item`, a proc-macro replacement
-for `#[test]`. Inside `#[cfg(test)]` modules, import it as:
-```rust
-#[cfg(test)]
-mod tests {
-    use crate::testing::TestType;
-    use testmacro::test_item as test;
-
-    #[test]
-    fn test_example() {
-        // test body — return Ok(()) on success
-    }
-}
-```
-The custom runner `sdk_test_runner` in `testing.rs` collects `TestType` items, runs them
-via PIC-aware function pointers, and reports results through semihosting output on Speculos.
-
-**Running tests**:
-```bash
-# Unit tests — requires speculos on PATH and a device target
-cargo test --target nanosplus --features speculos,debug --tests
-
-# Run an example on Speculos (uses per-target runner from config.toml)
-cargo run --example nbgl_home_and_settings --target stax --release \
-  --config ledger_device_sdk/examples/config.toml
-```
-
-**Key differences from standard Rust testing**:
-- Do **not** create a `tests/` directory for integration tests — there are no host-side
-  integration tests. Examples in `ledger_device_sdk/examples/` serve as integration-level
-  verification when run on Speculos.
-- Use `assert_eq_err!` (from `testing.rs`) instead of `assert_eq!` inside test functions.
-  It returns `Err(())` instead of panicking, allowing the harness to report all failures
-  rather than aborting on the first one.
-- Enable the `speculos` and `debug` cargo features when running tests so that
-  emulator-specific code paths and semihosting output are active.
-- Every test binary needs a panic handler; the custom harness provides `test_panic` for this.
 
 ### Documentation
 
@@ -198,20 +107,3 @@ cargo run --example nbgl_home_and_settings --target stax --release \
 - Organize code into modules using `mod.rs` or named files.
 - Keep `main.rs` or `lib.rs` minimal - move logic to modules.
 
-## Quality Checklist
-
-Before publishing or reviewing Rust code, ensure:
-
-### Core Requirements
-- [ ] **Naming**: Follows RFC 430 naming conventions
-- [ ] **Traits**: Implements `Debug`, `Clone`, `PartialEq` where appropriate
-- [ ] **Error Handling**: Uses `Result<T, E>` and provides meaningful error types
-- [ ] **Documentation**: All public items have rustdoc comments with examples
-- [ ] **Testing**: Tests use `testmacro::test_item` and run on Speculos against a device target
-
-### Safety and Quality
-- [ ] **Safety**: No unnecessary `unsafe` code, proper error handling
-- [ ] **Performance**: Efficient use of iterators, minimal allocations
-- [ ] **API Design**: Functions are predictable, flexible, and type-safe
-- [ ] **Future Proofing**: Private fields in structs, sealed traits where appropriate
-- [ ] **Tooling**: Code passes `cargo fmt` and `cargo clippy`; tests pass on Speculos
