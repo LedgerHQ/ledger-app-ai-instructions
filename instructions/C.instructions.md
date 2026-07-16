@@ -11,7 +11,7 @@ applyTo: "**/*"
 - The application must compile without errors or warnings. Compilation warnings must not be silenced through compiler flags or `#pragma` directives without a clear, documented reason.
 - The SDK exposes a deprecated API for custom exceptions. Ensure the PR does not introduce new THROW calls. Deprecated cryptographic functions that can throw exceptions must not be used; prefer the non-throwing SDK alternatives.
 - Usage of dynamic allocation is impossible and forbidden. Prefer static global buffers over heavy stack usage.
-- Never use `float` or `double`. Use fixed-point arithmetic or SDK BigInt functions (`cx_math_...`) instead.
+- Never use `float` or `double`. Use fixed-point arithmetic or SDK BigInt functions (`cx_math_...`) instead. This does not prevent you from displaying float-like strings.
 - Avoid recursion to prevent stack overflow on the constrained stack.
 - Prefer `memmove`/`memset` over manual byte-by-byte loops.
 - Use `strlcpy` or explicit bounds checking when manipulating strings. Always validate `dataLength` against expected sizes before any memory copy.
