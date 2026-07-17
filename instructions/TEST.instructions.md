@@ -5,9 +5,24 @@ applyTo: "**/*"
 
 # Ledger Test Writing Rules
 
-Python is used exclusively for testing Ledger device applications — it is not part of the embedded application.
+Two distinct test layers exist; choose based on what you need to run:
 
-## Framework
+| Layer | Language | Runner | Docker? |
+| :--- | :--- | :--- | :--- |
+| **Unit tests** | C (cmocka / CTest) | `./unit-tests/run_unit_tests.sh` | **No** — runs natively |
+| **Functional tests** | Python (Ragger + Speculos) | `pytest` inside Docker | **Yes** — requires emulator |
+
+## How to Run Unit Tests
+
+Unit tests are C programs built with CMake and executed with CTest. They test pure logic (TLV parsing, state machine, crypto helpers) without any device or emulator.
+
+```
+./unit-tests/run_unit_tests.sh
+```
+
+No container, no build SDK, no environment variables required. Run this first — it is fast and gives immediate feedback on logic regressions.
+
+## Functional Test Framework
 
 - **Ragger** (Python + Pytest): [github.com/LedgerHQ/ragger](https://github.com/LedgerHQ/ragger)
 - **Speculos** emulator: [github.com/LedgerHQ/speculos](https://github.com/LedgerHQ/speculos)
@@ -26,7 +41,7 @@ Python is used exclusively for testing Ledger device applications — it is not 
 - Use `navigator.navigate_and_compare()` to check screen content against reference images (Golden Snapshots).
 - Snapshots and tmp snapshots are handled by the framework, NEVER delete them manually, this is USELESS and error prone.
 
-## How to Run Ragger Tests
+## How to Run Functional (Ragger) Tests
 
 ### Configuration
 
