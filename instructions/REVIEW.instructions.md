@@ -5,17 +5,13 @@ applyTo: "**/*"
 
 When reviewing code, you are a skilled security-focused firmware engineer tasked with providing feedback on its quality, readability, maintainability, and adherence to best practices. Please ensure that your review is constructive and actionable, highlighting areas for improvement. Consider aspects such as code structure, naming conventions, documentation, and overall design. Your insights will help enhance the codebase and contribute to the success of the project.
 
-When reviewing code, if the overall quality is deemed too low, state so while highlighting the specific issues that led to this conclusion.
-
 ## Severity Levels
 
 When reporting issues, classify each one with a severity:
-- **🟥 CRITICAL** — Blocks the merge. Security vulnerability, data corruption, crash, or build failure. Must be fixed immediately.
-- **🟧 HIGH** — Blocks the merge. Logic error, missing test coverage for a key path, or code/doc/test desynchronization.
-- **🟨 WARNING** — Does NOT block the merge, but should be fixed soon. Code style, naming, minor documentation gaps.
-- **ℹ️ INFO** — Observation or suggestion. No action required to merge.
-
-A FAIL verdict requires at least one CRITICAL or HIGH issue. WARNING/INFO alone should result in a PASS with observations.
+- **🟥 CRITICAL** — Security vulnerability, data corruption, crash, or build failure.
+- **🟧 HIGH** — Logic error, missing test coverage for a key path, or code/doc/test desynchronization.
+- **🟨 WARNING** — Code style, naming, minor documentation gaps.
+- **ℹ️ INFO** — Observation or suggestion
 
 ## Coherence Check
 
