@@ -332,6 +332,8 @@ The UI is the fundamental part of the embedded application. All sensitive operat
 
 ### 4.3 Cryptographic Misuse
 
+#### 4.3.1 Crypto Misuse Patterns
+
 Secrets and crypto rules — all crypto through SDK functions, never custom implementations:
 
 | Pattern | Impact | Where to Check |
@@ -345,20 +347,22 @@ Secrets and crypto rules — all crypto through SDK functions, never custom impl
 | **Nonce bias / partial leakage** | Biased or partially-known nonce → private-key recovery (HNP/lattice) | Nonce generation, reduction, and how it is copied/stored |
 | **Secrets exported/shown** | Seed-derived secrets must never leave device | Key export handlers |
 
-Verify the contract of every crypto primitive (don't trust the call site)
+#### 4.3.2 Check How Each Crypto Function Is Called
 
-Using an SDK/library crypto function is necessary but **NOT sufficient** — most
-crypto bugs live in how inputs are prepared and how outputs are consumed, not in
-the primitive itself. For each crypto call, verify its **contract**:
-- output length, endianness, and **alignment/placement** within the destination buffer
-- which part of an over- or under-sized buffer actually holds the meaningful value
-- error/return semantics (does a failure leave partial or unusable state?)
-- pre-conditions on inputs (range, size, initialization)
+Calling an SDK/library crypto function correctly is necessary but **NOT
+sufficient**: most crypto bugs are in how inputs are prepared and how outputs are
+consumed, not in the primitive itself. For each crypto call, check the data going
+in and the data coming out:
+- Output length, endianness, and **alignment/placement** within the destination buffer.
+- Which part of an over- or under-sized buffer actually holds the meaningful value.
+- Error/return semantics: does a failure leave partial or unusable state?
+- Pre-conditions on inputs (range, size, initialization).
 
 Secret-material paths (nonce generation, key derivation, modular reductions,
 bignum exports) are the highest priority: a single mishandled byte, wrong slice,
 or endianness/alignment mismatch can turn a correct algorithm into full key
-compromise. Do not sign off on such a path by source reading alone (see Phase 8.5).
+compromise. When a source read of such a path leaves any doubt, confirm it
+empirically rather than re-reading (see Phase 8.5).
 
 ### 4.4 APDU Protocol Violations
 
@@ -591,17 +595,15 @@ def test_vulnerability_poc(backend: SpeculosBackend):
 | WARNING | Source-level justification sufficient |
 | INFO | Observation only |
 
-### 8.5 Source reasoning alone is not sufficient for secret-material paths
+### 8.5 Confirm Doubtful Secret-Material Paths Empirically
 
-Whenever code **generates, derives, reduces, or exports** key material or signing
-nonces, a PoC is **REQUIRED before rating** — regardless of how confident the
-source read is. Compile the real primitive against host stubs and check the
-property that matters empirically (output distribution/range, invariants,
-expected value against a known vector). A small harness (tens of lines)
-deterministically catches subtle handling bugs — truncation, wrong buffer slice,
-endianness/alignment, partial leakage — that source review routinely misses.
-This applies even when the finding would otherwise be dismissed as a false
-positive: for secret-material paths, "looks correct" is not a rating.
+Byte-handling bugs in secret-material code — truncation, wrong buffer slice,
+endianness/alignment, partial leakage — can survive source review. This is not
+systematic: a clear, unambiguous path needs no harness. But when a source read of
+code that **generates, derives, reduces, or exports** key material or signing
+nonces leaves a doubt, don't resolve it by re-reading — confirm the property that
+matters empirically with a short harness (tens of lines): output range or
+distribution, invariants, or an expected value against a known vector.
 
 ---
 
