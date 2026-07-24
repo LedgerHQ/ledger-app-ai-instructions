@@ -342,7 +342,23 @@ Secrets and crypto rules — all crypto through SDK functions, never custom impl
 | **Missing structure validation** | Sign attacker-controlled message without prefix | Message signing handlers |
 | **Cross-chain path allowed** | App signs for other coin's derivation | BIP44 coin-type enforcement |
 | **Nonce reuse** | Deterministic nonce generation missing | Must use RFC6979 (ECDSA) or Ed25519 (inherent) |
+| **Nonce bias / partial leakage** | Biased or partially-known nonce → private-key recovery (HNP/lattice) | Nonce generation, reduction, and how it is copied/stored |
 | **Secrets exported/shown** | Seed-derived secrets must never leave device | Key export handlers |
+
+Verify the contract of every crypto primitive (don't trust the call site)
+
+Using an SDK/library crypto function is necessary but **NOT sufficient** — most
+crypto bugs live in how inputs are prepared and how outputs are consumed, not in
+the primitive itself. For each crypto call, verify its **contract**:
+- output length, endianness, and **alignment/placement** within the destination buffer
+- which part of an over- or under-sized buffer actually holds the meaningful value
+- error/return semantics (does a failure leave partial or unusable state?)
+- pre-conditions on inputs (range, size, initialization)
+
+Secret-material paths (nonce generation, key derivation, modular reductions,
+bignum exports) are the highest priority: a single mishandled byte, wrong slice,
+or endianness/alignment mismatch can turn a correct algorithm into full key
+compromise. Do not sign off on such a path by source reading alone (see Phase 8.5).
 
 ### 4.4 APDU Protocol Violations
 
@@ -575,6 +591,18 @@ def test_vulnerability_poc(backend: SpeculosBackend):
 | WARNING | Source-level justification sufficient |
 | INFO | Observation only |
 
+### 8.5 Source reasoning alone is not sufficient for secret-material paths
+
+Whenever code **generates, derives, reduces, or exports** key material or signing
+nonces, a PoC is **REQUIRED before rating** — regardless of how confident the
+source read is. Compile the real primitive against host stubs and check the
+property that matters empirically (output distribution/range, invariants,
+expected value against a known vector). A small harness (tens of lines)
+deterministically catches subtle handling bugs — truncation, wrong buffer slice,
+endianness/alignment, partial leakage — that source review routinely misses.
+This applies even when the finding would otherwise be dismissed as a false
+positive: for secret-material paths, "looks correct" is not a rating.
+
 ---
 
 ## Phase 9: Coherence Check & Quality Gate
@@ -693,6 +721,7 @@ If overall quality is too low (excessive complexity, many warnings, significant 
 | CWE-345 (Insufficient Verification) | Display data ≠ signed data | All |
 | CWE-346 (Origin Validation) | Cross-chain derivation path allowed | All |
 | CWE-327 (Broken Crypto) | Custom crypto instead of SDK, wrong curve | All |
+| CWE-330 / CWE-1241 (Predictable/insufficiently-random value) | Biased or partially-known nonce from mishandled crypto output (truncation, wrong slice, alignment) | All |
 | CWE-312 (Cleartext Storage) | Private key not zeroed after use | All |
 | CWE-362 (Race Condition) | State machine interleaving between APDUs | All |
 
