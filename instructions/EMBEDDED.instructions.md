@@ -29,6 +29,8 @@ These rules apply to all embedded code (C and Rust) running on Ledger devices.
 
 - The RAM is limited to around 24 kilobytes. Ensure that the code is optimized for low memory usage and does not contain unnecessary allocations or unnecessarily large data structures.
 - Remember that the RAM is reset on every power cycle.
+- Avoid recursion to prevent stack overflow on the constrained stack.
+- Never use floating-point types (`float`/`double` in C, `f32`/`f64` in Rust). Use fixed-point arithmetic or SDK BigInt functions (`cx_math_...`) instead. This does not prevent you from displaying float-like strings.
 
 ## Secrets and Cryptography
 
