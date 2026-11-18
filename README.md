@@ -8,10 +8,12 @@ Add this repository as a git submodule of your application. Below, `<submodule>`
 
 ### Instructions
 
-Create an `AGENTS.md` at the root of your application that imports the entry point for its language, `C.md` or `RUST.md`:
+Create an `AGENTS.md` at the root of your application that imports the entry point for its language, `C.md` or `RUST.md`, followed by this check:
 
 ```markdown
 @<submodule>/C.md
+
+Ledger rules are mandatory. If the "Ledger Embedded Platform Rules" section is not in your context, read the file imported above and every file it imports, relative to the importing file, before any work. If they are missing, stop and tell the user to run `git submodule update --init`.
 ```
 
 Add your application's own instructions to the same file. Do not symlink `AGENTS.md` into the submodule: Copilot CLI then loads no rules.
@@ -49,4 +51,4 @@ Codex, Copilot CLI and VS Code read `.agents/skills/`; Claude Code does not (ant
 | `instructions/REVIEW.instructions.md` | Code review checklist (security, coherence, quality gate) |
 | `skills/ledger-security-review/` | Full-depth security audit methodology |
 
-Import a new instruction file from each entry point it applies to.
+Import a new instruction file from each entry point it applies to. Do not rename the instruction files or the "Ledger Embedded Platform Rules" heading: `ledger-vscode-extension` fetches the files by name, and the applications' check looks for the heading.
