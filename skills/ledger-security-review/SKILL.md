@@ -1,6 +1,6 @@
 ---
+name: ledger-security-review
 description: "Full-depth security audit methodology for any Ledger embedded application (C or Rust) — APDU reachability, trust model, memory safety, cryptographic misuse, clear-signing bypass. Use when the user asks to audit, pentest, find vulnerabilities, security review an embedded Ledger app, or mentions APDU fuzzing, exploit PoC, clear-signing bypass, or embedded firmware security."
-applyTo: "**/*"
 ---
 
 # Ledger Embedded Application Security Review — Generic Methodology

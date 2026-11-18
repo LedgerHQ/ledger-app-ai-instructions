@@ -18,10 +18,23 @@ Add your application's own instructions to the same file. Do not symlink `AGENTS
 
 Claude Code (v2.1.277 or later), Copilot CLI and VS Code read `AGENTS.md`. Do not add a `CLAUDE.md`, `.claude/CLAUDE.md` or `CLAUDE.local.md`, in the application or above it: Claude Code then ignores `AGENTS.md`. Your personal `~/.claude/CLAUDE.md` does not count. For personal notes, use a gitignored `.claude/rules/local.md`.
 
+### Skills
+
+Link each skill into `.agents/skills/`, and make `.claude/skills` a symlink to that directory. If `.claude/skills/` already exists, first move its content into `.agents/skills/` and delete it:
+
+```bash
+mkdir -p .agents/skills .claude
+ln -sfn ../../<submodule>/skills/ledger-security-review .agents/skills/ledger-security-review
+ln -sfn ../.agents/skills .claude/skills
+```
+
+Codex, Copilot CLI and VS Code read `.agents/skills/`; Claude Code does not (anthropics/claude-code#31005), so remove the `.claude/skills` symlink once it does. Stage skills under `.agents/skills/`: git rejects paths through the symlink. In Claude Code and Copilot CLI, invoke the skill with `/ledger-security-review`, or ask for a security review.
+
 ### Migrating from earlier versions
 
 - Replace your `CLAUDE.md` with the `AGENTS.md` above, moving its other content there: its import of `<submodule>/CLAUDE.md` now loads no rules.
 - Remove a `.github/instructions` symlink into the submodule: `AGENTS.md` loads the same rules.
+- Replace references to `skills/SECURITY.REVIEW.md` with `skills/ledger-security-review/SKILL.md`.
 
 ## Files
 
@@ -34,6 +47,6 @@ Claude Code (v2.1.277 or later), Copilot CLI and VS Code read `AGENTS.md`. Do no
 | `instructions/RUST.instructions.md` | Rust rules, toolchain, build workflow |
 | `instructions/TEST.instructions.md` | Test writing rules (Ragger, Speculos, snapshots) |
 | `instructions/REVIEW.instructions.md` | Code review checklist (security, coherence, quality gate) |
-| `skills/SECURITY.REVIEW.md` | Full-depth security audit methodology |
+| `skills/ledger-security-review/` | Full-depth security audit methodology |
 
 Import a new instruction file from each entry point it applies to.
