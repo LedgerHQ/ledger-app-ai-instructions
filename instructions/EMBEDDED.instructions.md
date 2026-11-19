@@ -10,14 +10,19 @@ These rules apply to all embedded code (C and Rust) running on Ledger devices.
 ## Application Privileges
 
 - Application flags must abide by the principle of least privilege.
-- Derivation paths must be restricted to coin-specific BIP32 prefixes.
+- Derivation paths must be restricted to the BIP32 prefixes the application needs, each justified by a protocol or standard it implements, such as its coin type. A broader prefix, such as a wildcard purpose, is acceptable only if the application checks each path when using it.
 - Curves usage must be restricted to only those required by the application.
 
 ## User Interface and Clear Signing
 
-- The UI is the fundamental part of the embedded application, NOT a cosmetic side. Ensure all sensitive operations (signing, public key export) are preceded by an explicit user validation screen. Flag any "blind signing" patterns or flows where the screen doesn't accurately represent the buffer being signed.
+- The UI is the fundamental part of the embedded application, NOT a cosmetic side.
+- A signature must only be valid for what the user authorized:
+  - By default, the user reviews each message on the device, and the screens must accurately represent what is signed. Parse and validate the whole message, and derive what is signed (the hash, or the message itself for schemes such as Ed25519) on the device from the reviewed bytes.
+  - Signing what the user cannot review, such as a host-supplied hash, requires an explicit opt-in instead: the blind-signing setting, or an authorization the user gives as the protocol requires, such as an OpenPGP PIN, a FIDO user-presence check, a baking setup or a swap confirmed in the Exchange app. A request from the host alone is never an authorization.
+  - Always validate what the device can check, and keep the protocol's domain separation.
 - If blind signing is implemented, it must be disabled by default behind a settings flag.
 - Critical and important information must be clear signed using a user-friendly format. The user must not be confused or tricked by the application workflow or displayed information.
+- Public keys on the application's standard paths may be exported without confirmation, but addresses the user relies on, such as receive addresses, must be displayable on the device for verification.
 
 ## Security and Availability
 
@@ -37,7 +42,6 @@ These rules apply to all embedded code (C and Rust) running on Ledger devices.
 - Ensure sensitive data such as private keys are explicitly cleaned from memory as soon as possible after usage.
 - Secrets derived from the seed must not be stored, exported, or shown to the user.
 - Cryptographic calls must be made through the SDK's functions, not implemented in application code. Ensure that all cryptographic operations are performed using these functions and that they are used correctly to maintain security and performance.
-- Structure integrity of messages must be verified before signature. Never allow signing of attacker-controlled messages.
 
 ## APDU Handling
 

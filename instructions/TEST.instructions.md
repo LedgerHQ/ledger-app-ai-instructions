@@ -21,7 +21,7 @@ Python is used exclusively for testing Ledger device applications — it is not 
 
 ## UI Verification
 
-- For critical actions (signing, key export), verify that the device displays the correct information before the user approves.
+- For actions the user approves (signing, address verification), verify that the device displays the correct information before approval.
 - Use the Ragger `navigator` to simulate user interaction: button presses on Nano devices, touch events on Stax/Flex/Apex.
 - Use `navigator.navigate_and_compare()` to check screen content against reference images (Golden Snapshots).
 - Snapshots and tmp snapshots are handled by the framework, NEVER delete them manually, this is USELESS and error prone.
