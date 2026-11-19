@@ -15,13 +15,12 @@ These rules apply to all embedded code (C and Rust) running on Ledger devices.
 
 ## User Interface and Clear Signing
 
-- The UI is the fundamental part of the embedded application, NOT a cosmetic side.
 - A signature must only be valid for what the user authorized:
   - By default, the user reviews each message on the device, and the screens must accurately represent what is signed. Parse and validate the whole message, and derive what is signed (the hash, or the message itself for schemes such as Ed25519) on the device from the reviewed bytes.
   - Signing what the user cannot review, such as a host-supplied hash, requires an explicit opt-in instead: the blind-signing setting, or an authorization the user gives as the protocol requires, such as an OpenPGP PIN, a FIDO user-presence check, a baking setup or a swap confirmed in the Exchange app. A request from the host alone is never an authorization.
   - Always validate what the device can check, and keep the protocol's domain separation.
 - If blind signing is implemented, it must be disabled by default behind a settings flag.
-- Critical and important information must be clear signed using a user-friendly format. The user must not be confused or tricked by the application workflow or displayed information.
+- The UI is a security feature, NOT a cosmetic side: critical and important information must be clear signed using a user-friendly format, and the user must not be confused or tricked by the application workflow or displayed information.
 - Public keys on the application's standard paths may be exported without confirmation, but addresses the user relies on, such as receive addresses, must be displayable on the device for verification.
 
 ## Security and Availability
@@ -33,7 +32,7 @@ These rules apply to all embedded code (C and Rust) running on Ledger devices.
 
 ## Memory and Runtime
 
-- The application RAM, shared by globals, SDK buffers and the stack, is only a few tens of KB; the exact size is the `SRAM` length in the SDK's linker script, `target/<device>/script.ld`. Ensure that the code is optimized for low memory usage and does not contain unnecessary allocations or unnecessarily large data structures.
+- The application RAM, shared by globals, SDK buffers and the stack, is only a few tens of KB; the exact size is the `SRAM` length in the SDK's linker script, `target/<device>/script.ld`. Keep memory usage low: no unnecessary allocations or oversized data structures.
 - RAM is reset on every power cycle: keep persistent state in NVM (`nvm_write` in C, `NVMData` in Rust), and write it only when the value changes, since flash wears out.
 - Avoid recursion to prevent stack overflow on the constrained stack.
 - Never use floating-point types (`float`/`double` in C, `f32`/`f64` in Rust). Use fixed-point arithmetic or SDK BigInt functions (`cx_math_...`) instead. This does not prevent you from displaying float-like strings.
@@ -42,16 +41,16 @@ These rules apply to all embedded code (C and Rust) running on Ledger devices.
 
 - Ensure sensitive data such as private keys are explicitly cleaned from memory as soon as possible after usage.
 - Secrets derived from the seed must not be stored, exported, or shown to the user.
-- Cryptographic calls must be made through the SDK's functions, not implemented in application code. Ensure that all cryptographic operations are performed using these functions and that they are used correctly to maintain security and performance.
+- Cryptographic calls must be made through the SDK's functions, not implemented in application code.
 
 ## APDU Handling
 
-- APDUs are the sole entry point of the application. Ensure the code treats the incoming APDUs as untrusted input and implements proper validation and error handling to prevent potential security vulnerabilities. Look for robust parsing of APDU commands, validation of input data, and appropriate responses to invalid or malicious requests.
+- APDUs are the sole entry point of the application: treat them as untrusted input, validate every field, and answer invalid or malicious requests with an error status word.
 - Check arithmetic on lengths, offsets and amounts for overflow and underflow before using the result; in Rust, use `checked_*` operations.
 
 ## Comments
 
 - Comments are TIMELESS and must remain true and useful years later; do not use them to describe how things **were**, nor to forward information to the AI caller.
-- Avoid comments that describe what the code is doing, unless it's doing something non-obvious. Focus on the intent and rationale behind the code rather than restating the code's functionality. Basic code understanding should come from proper variable and function names.
+- Avoid comments that describe what the code is doing, unless it's doing something non-obvious; explain intent and rationale instead. Basic code understanding should come from proper variable and function names.
 - Comments should stay concise and dense in information; multiline comments should be rare.
 - Comments should respect separation of concerns; do not bring outside knowledge where it does not belong.

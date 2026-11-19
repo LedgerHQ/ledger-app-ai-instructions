@@ -1,51 +1,18 @@
 ---
-description: 'Rust programming language coding conventions and best practices'
+description: 'Ledger embedded Rust application development rules and build workflow'
 applyTo: '**/*'
 ---
 
 # Ledger Embedded Rust Rules
 
-## General Instructions
-
-- Always prioritize readability, safety, and maintainability.
-- Use strong typing and leverage Rust's ownership system for memory safety.
-- Break down complex functions into smaller, more manageable functions.
-- Handle errors gracefully using `Result<T, E>`.
-- Use consistent naming conventions following [RFC 430](https://github.com/rust-lang/rfcs/blob/master/text/0430-finalizing-naming-conventions.md).
-- Write idiomatic, safe, and efficient Rust code that follows the borrow checker's rules.
-- Ensure code compiles without warnings.
-
-## Patterns to Follow
-
-- Use modules (`mod`) and public interfaces (`pub`) to encapsulate logic.
-- Handle errors properly using `?`, `match`, or `if let`.
-- Implement traits to abstract services or external dependencies.
-- Prefer enums over flags and states for type safety.
-- Use builders for complex object creation.
-- Use iterators instead of index-based loops as they're often faster and safer.
-- Use `&str` instead of `String` for function parameters when you don't need ownership.
 - Prefer borrowing and zero-copy operations to avoid unnecessary allocations.
-
-### Ownership, Borrowing, and Lifetimes
-
-- Prefer borrowing (`&T`) over cloning unless ownership transfer is necessary.
-- Use `&mut T` when you need to modify borrowed data.
-- Explicitly annotate lifetimes when the compiler cannot infer them.
-
-## Patterns to Avoid
-
-- Don't use `unwrap()` or `expect()` unless failure is truly impossible or represents an unrecoverable state.
-- Avoid deeply nested logic—refactor with functions or combinators.
 - Dependencies must be checked with `cargo audit` to ensure no known impactful vulnerabilities are present.
 - Avoid `unsafe` unless required and fully documented. All `unsafe` blocks must be justified in a comment.
 
 ## Error Handling
 
-- A panic exits the application: panic only on broken invariants, never on invalid input.
-- Prefer `?` operator over `unwrap()` or `expect()` for error propagation.
-- Use `Option<T>` for values that may or may not exist.
+- A panic, including from `unwrap()` or `expect()`, exits the application: panic only on broken invariants, never on invalid input.
 - Return errors to the host as APDU status words, such as an `AppSW` enum converted into a `Reply`, not as strings.
-- Validate function arguments and return appropriate errors for invalid input.
 
 ## Documentation
 
@@ -92,12 +59,3 @@ Enable debug logging with the `debug` feature:
 ```bash
 cargo ledger build nanosplus -- --features debug
 ```
-
-## Project Organization
-
-- Use semantic versioning in `Cargo.toml`.
-- Include comprehensive metadata: `description`, `license`, `repository`, `keywords`, `categories`.
-- Use feature flags for optional functionality.
-- Organize code into modules using `mod.rs` or named files.
-- Keep `main.rs` or `lib.rs` minimal - move logic to modules.
-

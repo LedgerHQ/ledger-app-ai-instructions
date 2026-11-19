@@ -66,6 +66,6 @@ When iterating on tests, use `-k` to run only a subset of tests (e.g., `-k "test
 
 Every tested feature must include:
 - Happy path
-- Error paths (invalid inputs, edge cases, malicious inputs)
+- Error paths (invalid and malicious inputs)
 - User rejection (where applicable)
 - Edge cases (empty data, max-length data, boundary values)
