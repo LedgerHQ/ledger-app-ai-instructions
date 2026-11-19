@@ -1,8 +1,3 @@
----
-description: "Ledger application code review checklist — security, coherence, and quality gate"
-applyTo: "**/*"
----
-
 # Ledger Code Review
 
 Apply these rules when reviewing code.

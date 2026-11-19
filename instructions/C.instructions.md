@@ -1,8 +1,3 @@
----
-description: "Ledger embedded C application development rules and build workflow"
-applyTo: "**/*"
----
-
 # Ledger Embedded C Rules
 
 - Use the Ledger SDK APIs and conventions. The SDK code is available at https://github.com/LedgerHQ/ledger-secure-sdk/

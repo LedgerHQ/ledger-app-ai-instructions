@@ -1,8 +1,3 @@
----
-description: 'Ledger embedded Rust application development rules and build workflow'
-applyTo: '**/*'
----
-
 # Ledger Embedded Rust Rules
 
 - Prefer borrowing and zero-copy operations to avoid unnecessary allocations.

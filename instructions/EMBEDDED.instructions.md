@@ -1,8 +1,3 @@
----
-description: "Ledger embedded platform constraints shared by C and Rust applications"
-applyTo: "**/*"
----
-
 # Ledger Embedded Platform Rules
 
 These rules apply to all embedded code (C and Rust) running on Ledger devices.

@@ -1,8 +1,3 @@
----
-description: "Ledger application build and test environment: devices and Docker image"
-applyTo: "**/*"
----
-
 # Ledger Build and Test Environment
 
 - Supported devices are listed in `[app].devices` of `ledger_app.toml`. Each one maps to a C SDK variable, a Rust cargo target and a pytest `--device` value:

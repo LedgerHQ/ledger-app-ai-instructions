@@ -1,8 +1,3 @@
----
-description: "Ledger application test writing rules using Ragger, Pytest, and Speculos"
-applyTo: "**/*"
----
-
 # Ledger Test Writing Rules
 
 Python is used exclusively for testing Ledger device applications — it is not part of the embedded application.
