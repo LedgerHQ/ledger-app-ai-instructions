@@ -20,7 +20,7 @@
 - `.cargo/config.toml` may declare a default cargo target; commands without an explicit target build for it.
 - Run `cargo fmt --check` and `cargo clippy` before submitting.
 - The application must compile without errors or warnings, including clippy's. Warnings must not be silenced through compiler flags or `#[allow]` without a clear, documented reason.
-- Heap is 8192 bytes by default. Override via `HEAP_SIZE` env var; allowed values: 2048, 4096, 8192, 16384, 24576.
+- The heap is 8192 bytes by default. Override it with the `HEAP_SIZE` env var, either one value or per-device values such as `nanosplus: 8192, stax: 12288`, between 2048 bytes and the device's RAM minus 4 KB.
 - `cargo build` on the host will not produce a runnable binary: there is no host target. In the Docker environment, run [`cargo ledger build`](https://github.com/LedgerHQ/cargo-ledger) with the Rust cargo target of the device (output: `target/<TARGET>/release/<app-name>`):
 
 ```bash
