@@ -10,10 +10,7 @@ applyTo: '**/*'
 - Always prioritize readability, safety, and maintainability.
 - Use strong typing and leverage Rust's ownership system for memory safety.
 - Break down complex functions into smaller, more manageable functions.
-- For algorithm-related code, include explanations of the approach used.
-- Write code with good maintainability practices, including comments on why certain design decisions were made.
-- Handle errors gracefully using `Result<T, E>` and provide meaningful error messages.
-- For external dependencies, mention their usage and purpose in documentation.
+- Handle errors gracefully using `Result<T, E>`.
 - Use consistent naming conventions following [RFC 430](https://github.com/rust-lang/rfcs/blob/master/text/0430-finalizing-naming-conventions.md).
 - Write idiomatic, safe, and efficient Rust code that follows the borrow checker's rules.
 - Ensure code compiles without warnings.
@@ -38,18 +35,22 @@ applyTo: '**/*'
 ## Patterns to Avoid
 
 - Don't use `unwrap()` or `expect()` unless failure is truly impossible or represents an unrecoverable state.
-- Avoid panics in library code—return `Result` instead.
 - Avoid deeply nested logic—refactor with functions or combinators.
 - Dependencies must be checked with `cargo audit` to ensure no known impactful vulnerabilities are present.
 - Avoid `unsafe` unless required and fully documented. All `unsafe` blocks must be justified in a comment.
 
 ## Error Handling
 
-- Use `Result<T, E>` for recoverable errors and `panic!` only for unrecoverable errors.
+- A panic exits the application: panic only on broken invariants, never on invalid input.
 - Prefer `?` operator over `unwrap()` or `expect()` for error propagation.
 - Use `Option<T>` for values that may or may not exist.
-- Provide meaningful error messages and context.
+- Return errors to the host as APDU status words, such as an `AppSW` enum converted into a `Reply`, not as strings.
 - Validate function arguments and return appropriate errors for invalid input.
+
+## Documentation
+
+- Write item-level comments as `///` doc comments.
+- Give every `unsafe fn` a `# Safety` section, and every function that can panic a `# Panics` section.
 
 ## How to build
 
@@ -91,15 +92,6 @@ Enable debug logging with the `debug` feature:
 ```bash
 cargo ledger build nanosplus -- --features debug
 ```
-
-### Documentation
-
-- Write clear and concise comments for each function, struct, enum, and complex logic.
-- Ensure functions have descriptive names and include comprehensive documentation.
-- Document all public APIs with rustdoc (`///` comments) following the [API Guidelines](https://rust-lang.github.io/api-guidelines/).
-- Use `#[doc(hidden)]` to hide implementation details from public documentation.
-- Document error conditions, panic scenarios, and safety considerations.
-- Examples should use `?` operator, not `unwrap()` or deprecated `try!` macro.
 
 ## Project Organization
 
