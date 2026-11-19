@@ -45,6 +45,7 @@ Codex, Copilot CLI and VS Code read `.agents/skills/`; Claude Code does not (ant
 | `C.md` | Entry point for C applications |
 | `RUST.md` | Entry point for Rust applications |
 | `instructions/EMBEDDED.instructions.md` | Cross-language embedded constraints (hardware, security, UI) |
+| `instructions/ENVIRONMENT.instructions.md` | Build and test environment (devices, Docker image) |
 | `instructions/C.instructions.md` | C rules, toolchain, build workflow |
 | `instructions/RUST.instructions.md` | Rust rules, toolchain, build workflow |
 | `instructions/TEST.instructions.md` | Test writing rules (Ragger, Speculos, snapshots) |
