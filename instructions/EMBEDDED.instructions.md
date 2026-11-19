@@ -32,8 +32,8 @@ These rules apply to all embedded code (C and Rust) running on Ledger devices.
 
 ## Memory and Runtime
 
-- The RAM is limited to around 24 kilobytes. Ensure that the code is optimized for low memory usage and does not contain unnecessary allocations or unnecessarily large data structures.
-- Remember that the RAM is reset on every power cycle.
+- The application RAM, shared by globals, SDK buffers and the stack, is only a few tens of KB; the exact size is the `SRAM` length in the SDK's linker script, `target/<device>/script.ld`. Ensure that the code is optimized for low memory usage and does not contain unnecessary allocations or unnecessarily large data structures.
+- RAM is reset on every power cycle: keep persistent state in NVM (`nvm_write` in C, `NVMData` in Rust), and write it only when the value changes, since flash wears out.
 - Avoid recursion to prevent stack overflow on the constrained stack.
 - Never use floating-point types (`float`/`double` in C, `f32`/`f64` in Rust). Use fixed-point arithmetic or SDK BigInt functions (`cx_math_...`) instead. This does not prevent you from displaying float-like strings.
 
