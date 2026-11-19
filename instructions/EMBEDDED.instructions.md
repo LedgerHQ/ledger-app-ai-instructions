@@ -29,6 +29,7 @@ These rules apply to all embedded code (C and Rust) running on Ledger devices.
 - Security strictly overrides availability; the application MUST always "fail closed."
 - When encountering an unexpected issue, the application must refuse to proceed with the standard flow and return an error.
 - It is NEVER acceptable to silence a security issue to preserve availability. Even a crash is preferable to executing in an unverified or compromised state. This BANS eager patterns such as dubious fallbacks, default values, clamping, etc.
+- In `switch` and `match`, give every valid value its own case; reserve `default:` and `_ =>` for errors and unexpected values.
 
 ## Memory and Runtime
 
@@ -46,6 +47,7 @@ These rules apply to all embedded code (C and Rust) running on Ledger devices.
 ## APDU Handling
 
 - APDUs are the sole entry point of the application. Ensure the code treats the incoming APDUs as untrusted input and implements proper validation and error handling to prevent potential security vulnerabilities. Look for robust parsing of APDU commands, validation of input data, and appropriate responses to invalid or malicious requests.
+- Check arithmetic on lengths, offsets and amounts for overflow and underflow before using the result; in Rust, use `checked_*` operations.
 
 ## Comments
 

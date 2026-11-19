@@ -13,7 +13,6 @@ applyTo: "**/*"
 - Usage of dynamic allocation is impossible and forbidden. Prefer static global buffers over heavy stack usage.
 - Prefer `memmove`/`memset` over manual byte-by-byte loops.
 - Use `strlcpy` or explicit bounds checking when manipulating strings. Always validate `dataLength` against expected sizes before any memory copy.
-- NEVER use `default:` as the last valid case to save a `case N:` label. `default:` is ONLY for error/unexpected paths. Every valid value gets its own explicit `case`.
 
 ## How to build
 
