@@ -12,7 +12,8 @@
 
 - Build and test in Docker:
   - **Running container:** The Ledger VS Code extension runs each app in a container named `<app folder name>-container`. If `docker ps` lists this app's container, run commands in it with `docker exec` instead of starting a new one.
-  - **Image discovery:** Run `docker images | grep ledger` before any `docker run`. Do NOT assume a hardcoded image name.
-  - **Common image:** `ghcr.io/ledgerhq/ledger-app-builder/ledger-app-dev-tools:latest` (includes the C and Rust toolchains, `cargo-ledger`, Speculos, the enforcer and a Python venv), to pull if no local image matches.
+  - **Registry:** `ghcr.io/ledgerhq/ledger-app-builder-dev` if a git remote's repository name ends with `-dev` (a private copy), else `ghcr.io/ledgerhq/ledger-app-builder`.
+  - **Image discovery:** Run `docker images | grep ledger` before any `docker run`, and prefer a local image from that registry. Do NOT assume a hardcoded image name.
+  - **Common image:** `<registry>/ledger-app-dev-tools:latest` (includes the C and Rust toolchains, `cargo-ledger`, Speculos, the enforcer and a Python venv), to pull if no local image matches.
   - **Volume mount:** Mount the project root to `/app` inside the container.
   - **Host OS adaptation:** Adapt Docker commands to the host OS (e.g., shell syntax for current directory, variable escaping).
