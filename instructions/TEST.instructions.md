@@ -18,7 +18,7 @@ Python is used exclusively for testing Ledger device applications — it is not 
 - For actions the user approves (signing, address verification), verify that the device displays the correct information before approval.
 - Use the Ragger `navigator` to simulate user interaction: button presses on Nano devices, touch events on Stax/Flex/Apex.
 - Use `navigator.navigate_and_compare()` to check screen content against reference images (Golden Snapshots).
-- Snapshots and tmp snapshots are handled by the framework, NEVER delete them manually, this is USELESS and error prone.
+- Snapshots and tmp snapshots are handled by the framework: never delete them manually, except the snapshot directory of a test you remove or rename, and the snapshots a test you changed no longer produces (`--golden_run` overwrites snapshots but does not delete extra ones).
 
 ## How to Run Ragger Tests
 

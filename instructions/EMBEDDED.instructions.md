@@ -23,7 +23,7 @@ These rules apply to all embedded code (C and Rust) running on Ledger devices.
 - Security strictly overrides availability; the application MUST always "fail closed."
 - When encountering an unexpected issue, the application must refuse to proceed with the standard flow and return an error.
 - It is NEVER acceptable to silence a security issue to preserve availability. Even a crash is preferable to executing in an unverified or compromised state. This BANS eager patterns such as dubious fallbacks, default values, clamping, etc.
-- In `switch` and `match`, give every valid value its own case; reserve `default:` and `_ =>` for errors and unexpected values.
+- In `switch` and `match`, list every valid value explicitly, alone or within a range such as `0x10..=0x1F`; reserve `default:` and `_ =>` for errors and unexpected values.
 
 ## Memory and Runtime
 
@@ -34,8 +34,8 @@ These rules apply to all embedded code (C and Rust) running on Ledger devices.
 
 ## Secrets and Cryptography
 
-- Ensure sensitive data such as private keys are explicitly cleaned from memory as soon as possible after usage.
-- Secrets derived from the seed must not be stored, exported, or shown to the user.
+- Ensure sensitive data such as private keys are explicitly cleaned from memory as soon as possible after usage (with `explicit_bzero` in C, which the compiler cannot optimize away).
+- Private keys and other secrets derived from the seed must not be written to NVM, exported, or shown to the user.
 - Use the SDK's cryptographic primitives (hashes, curve operations, signatures, random numbers); never reimplement them or take them from third-party libraries. Build protocol-specific schemes, such as a chain's own hash function, on top of these primitives.
 
 ## APDU Handling
