@@ -30,10 +30,10 @@ Task Progress:
 
 Before auditing, map the architecture:
 
-1. **Read `ledger_app.toml`** — devices, test directory, app flags, SDK (C or Rust)
+1. **Read `ledger_app.toml`** — devices, test directory, SDK (C or Rust). App flags, curves and derivation paths are in the `Makefile` (C) or under `[package.metadata.ledger]` in `Cargo.toml` (Rust)
 2. **Read `Makefile` / `Cargo.toml` / `features.mk`** — compiled features, `#define` / `--features` flags, coin variants
 3. **Identify the language and SDK**:
-   - **C apps**: ISO C99, Clang/LLVM, `BOLOS_SDK`, Makefile-based
+   - **C apps**: C99 with GNU extensions (`-std=gnu99`), Clang/LLVM, `BOLOS_SDK`, Makefile-based
    - **Rust apps**: `#![no_std]`, `ledger_device_sdk` crate, custom test harness
 4. **Identify APDU dispatcher** — the INS routing mechanism:
    - **C**: `apdu_dispatcher()` switch on `cmd->ins`, or `handleApdu()` with INS switch
@@ -42,7 +42,7 @@ Before auditing, map the architecture:
 6. **Identify coin-specific patterns**:
    - **UTXO-based** : Trusted inputs, multi-phase signing, script validation
    - **Account-based** : Transaction parsing, program/contract dispatch
-7. **Identify swap/library mode** — does the app expose `library_main()` or handle `os_lib_call`?
+7. **Identify swap/library mode** — does the app expose `library_app_main()` (`library_main()` in older apps) or handle `os_lib_call`?
 8. **Identify PKI integration** — trusted info provisioning, CAL descriptors, certificate validation
 
 ### 0.2 Build the Call Graph
@@ -71,14 +71,14 @@ For each INS handler, trace the call chain to leaf functions. Priority:
 | Entity | Trust Level | Controls |
 |--------|------------|----------|
 | **Ledger firmware/OS** | Fully trusted | SDK syscalls, app isolation, memory protection |
-| **Exchange app** | Trusted (Ledger-signed) | Calls `library_main()` / `os_lib_call` for swap |
+| **Exchange app** | Trusted (Ledger-signed) | Calls `library_app_main()` / `os_lib_call` for swap |
 | **PKI certificates** | Semi-trusted | Issued by Ledger backend, per-usage scoped |
 | **Companion app / host** | **UNTRUSTED** | Sends APDUs, can be malicious |
 | **Blockchain data** | **UNTRUSTED** | RLP, scripts, calldata, instructions — attacker-controlled |
 
 ### 1.2 Key Implications
 
-- **APDUs are the primary attack surface.** Any bug reachable only from `library_main()` (Exchange app) is defense-in-depth only — NOT exploitable by external attacker.
+- **APDUs are the primary attack surface.** Any bug reachable only from `library_app_main()` (Exchange app) is defense-in-depth only — NOT exploitable by external attacker.
 - **PKI-gated operations** require a Ledger-issued certificate. Bugs behind PKI checks have reduced exploitability.
 - **Plugins/custom programs** receive untrusted calldata — high-priority targets.
 - **All wire-format data is attacker-controlled** — all parsing must be robust.
@@ -91,14 +91,14 @@ The attacker is the **companion app / host** sending APDUs to the device over US
 - Provide forged token/program info (unless PKI-validated)
 - Interleave commands to exploit state machines
 - Skip or replay multi-chunk steps
-- **Cannot** call `library_main()` (only Exchange app can)
+- **Cannot** call `library_app_main()` (only Exchange app can)
 - **Cannot** forge PKI certificates (unless Ledger infra is compromised)
 
 ### 1.4 Privilege Verification
 
 Verify application privileges adhere to least privilege:
 - [ ] Application flags: minimal required permissions only
-- [ ] Derivation paths restricted to coin-specific BIP32 prefixes
+- [ ] Derivation paths restricted to the BIP32 prefixes the application needs, each justified by a protocol or standard it implements; a broader prefix, such as a wildcard purpose, only if each path is checked when used
 - [ ] Curves restricted to only those required by the application
 
 ---
@@ -149,7 +149,7 @@ switch (cmd->ins) {
 }
 ```
 
-**Rust Pattern** — type-safe enum with compile-time enforcement:
+**Rust Pattern** — type-safe enum, safe only if the conversion from raw bytes rejects unknown values:
 ```rust
 enum Instruction {
     GetVersion,
@@ -165,14 +165,14 @@ enum Instruction {
 
 ### 3.1 Global State Inventory
 
-Ledger apps use **global static buffers** (no heap in C, limited Vec in Rust). Map:
+Ledger apps mostly use **global static buffers** (heap in C only through the SDK allocator, limited Vec in Rust). Map:
 
 | Pattern | C Apps | Rust Apps |
 |---------|--------|-----------|
 | **Global context** | `G_context` struct with union fields | `TxContext` struct passed as `&mut` |
 | **State discriminant** | `appState` / `transactionState` enum | Enum variant or `state` field |
 | **Transaction buffer** | `raw_tx[MAX_LEN]` static array | `Vec<u8>` (heap, but bounded) |
-| **Multi-hash** | Union of `cx_sha256_t` / `cx_blake2b_t` / `cx_keccak_t` | SDK hash structs |
+| **Multi-hash** | Union of `cx_sha256_t` / `cx_blake2b_t` / `cx_sha3_t` | SDK hash structs |
 | **Plugin/program state** | Per-plugin context struct | N/A (no plugin in Rust boilerplate) |
 | **NVM settings** | `N_storage` with `nvm_write()` | `AtomicStorage` in `.nvm_data` section |
 
@@ -197,7 +197,7 @@ For multi-APDU flows (sign TX, trusted input, EIP-712):
 **Account (Ethereum)**:
 - `shared_context` union — `appState` as discriminant
 - Plugin result persistence across `provide_parameter` calls
-- EIP-712 recursive type state — cycle detection needed
+- EIP-712 recursive type state — cycle detection and a depth bound independent of the payload needed
 
 **Account (Solana)**:
 - `ApduState` progression: Uninitialized → PayloadInProgress → PayloadComplete
@@ -216,7 +216,7 @@ The RAM is limited. Verify:
 | Rule | C Check | Rust Check |
 |------|---------|------------|
 | **Dynamic allocation** | SDK pool allocator (`mem_alloc`) available — OOM returns NULL, check all returns; prefer static global buffers | Vec allowed but bounded; forbidden in swap callbacks (BSS sharing) |
-| **No recursion** | Forbidden — prevents stack overflow | Avoid deep call stacks (same constrained stack) |
+| **No recursion** | Avoid; only with a depth bounded independently of the payload | Avoid deep call stacks (same constrained stack) |
 | **No float/double** | Forbidden — use fixed-point or SDK `cx_math_*` | Same (no_std, no FPU) |
 | **Prefer memmove/memset** | Over manual byte loops | Use slice operations |
 | **Validate lengths before copy** | `dataLength` checked against expected before any memcpy | `.get()` or explicit bounds before indexing |
@@ -268,10 +268,12 @@ unsafe { ptr::read(addr) } // Missing SAFETY comment, unverified invariants
 #### Expected Safe Patterns:
 ```c
 // C: bounds check THEN access
-if (dataLength < offset + expected_size) return SW_WRONG_DATA_LENGTH;
+if (offset > dataLength || expected_size > dataLength - offset) return SW_WRONG_DATA_LENGTH;
 
-// C: explicit_bzero after crypto
-bip32_derive_ecdsa_sign_hash_256(...);
+// C: clear a key derived by hand as soon as it is used
+// (the bip32_derive_*_sign_* helpers clear theirs internally)
+CX_CHECK(bip32_derive_init_privkey_256(curve, path, path_len, &private_key, NULL));
+// ... sign ...
 explicit_bzero(&private_key, sizeof(private_key));
 
 // C: non-throwing crypto
@@ -286,7 +288,8 @@ let path = Bip32Path::try_from(data).map_err(|_| AppSW::WrongApduLength)?;
 let total = amount.checked_add(fee).ok_or(AppSW::TxParsingFail)?;
 
 // Rust: bounds-checked accumulation
-if ctx.raw_tx.len() + data.len() > MAX_TRANSACTION_LEN {
+let new_len = ctx.raw_tx.len().checked_add(data.len()).ok_or(AppSW::TxWrongLength)?;
+if new_len > MAX_TRANSACTION_LEN {
     return Err(AppSW::TxWrongLength);
 }
 ```
@@ -295,7 +298,7 @@ if ctx.raw_tx.len() + data.len() > MAX_TRANSACTION_LEN {
 
 The attacker's goal: make the user sign something **different from what's displayed**.
 
-The UI is the fundamental part of the embedded application. All sensitive operations (signing, public key export) must be preceded by explicit user validation. The screen must accurately represent the buffer being signed.
+The UI is the fundamental part of the embedded application. A signature must only be valid for what the user authorized: by default, the user reviews each message on the device and the screens accurately represent what is signed. Signing what the user cannot review needs an explicit opt-in: the blind-signing setting, or an authorization the user gives as the protocol requires. A request from the host alone is never an authorization. Public keys on the application's standard paths may be exported without confirmation.
 
 | Pattern | Description | All Archetypes |
 |---------|-------------|----------------|
@@ -338,12 +341,12 @@ Secrets and crypto rules — all crypto through SDK functions, never custom impl
 
 | Pattern | Impact | Where to Check |
 |---------|--------|----------------|
-| **Key not cleared** | Private key material in RAM after use | After `bip32_derive_*`, `eddsa_sign_*` |
+| **Key not cleared** | Private key material in RAM after use | After calls that hand a key to the app, such as `bip32_derive_init_privkey_256`; the `bip32_derive_*_sign_*` helpers clear theirs |
 | **Deprecated THROW in crypto** | Exception leaks partial state — use non-throwing SDK | C apps with `cx_*` calls that can throw |
 | **Wrong curve/derivation** | Sign with wrong key | Curve parameter validation |
-| **Missing structure validation** | Sign attacker-controlled message without prefix | Message signing handlers |
+| **Missing structure validation** | Message signed without full parsing or without the protocol's domain separation | Message signing handlers |
 | **Cross-chain path allowed** | App signs for other coin's derivation | BIP44 coin-type enforcement |
-| **Nonce reuse** | Deterministic nonce generation missing | Must use RFC6979 (ECDSA) or Ed25519 (inherent) |
+| **Nonce reuse** | Nonce repeated, predictable or supplied by the host | Generated on device: RFC6979 or TRNG for ECDSA, the scheme's own derivation for BIP340 or MuSig2; Ed25519 is deterministic by design |
 | **Nonce bias / partial leakage** | Biased or partially-known nonce → private-key recovery (HNP/lattice) | Nonce generation, reduction, and how it is copied/stored |
 | **Secrets exported/shown** | Seed-derived secrets must never leave device | Key export handlers |
 
@@ -371,7 +374,7 @@ empirically rather than re-reading (see Phase 8.5).
 | **Missing length validation** | OOB access | C: `data[offset]` without check; Rust: index panic |
 | **State confusion** | Handler doesn't check current state | ✓ |
 | **Partial init on error** | Half-initialized state persists | ✓ |
-| **P1/P2 not validated** | Unexpected values accepted | C only (Rust enum enforces) |
+| **P1/P2 not validated** | Unexpected values accepted | C dispatchers; Rust conversions into the instruction enum |
 | **Multi-chunk skip** | Chunk N accepted without chunk 0 | ✓ |
 | **Chunk replay** | Same chunk processed twice | ✓ |
 
@@ -439,7 +442,7 @@ APDU IN (CLA=0xE0, INS=0xXX, P1, P2, data)
 ### 5.1 Reachability Questions
 
 1. **Which INS code reaches this code?** Follow the call graph backward.
-2. **Is there a `library_main()` / swap-only path?** If yes → NOT exploitable externally.
+2. **Is there a `library_app_main()` / swap-only path?** If yes → NOT exploitable externally.
 3. **Are there guards (PKI check, settings flag, state requirement) before the vulnerable code?**
 4. **What state must be set up first?** (prior APDUs needed to reach the state)
 5. **Can the attacker actually provide the triggering input via APDU data?**
@@ -452,10 +455,11 @@ APDU IN (CLA=0xE0, INS=0xXX, P1, P2, data)
 | Direct APDU handler, no guards | **Yes** | High |
 | APDU handler behind PKI check | **Yes** (reduced) | Medium (needs cert) |
 | APDU handler behind settings flag | **Yes** (conditional) | Medium (needs user enable) |
-| Only via `library_main()` / Exchange | **No** | Defense-in-depth only |
-| Requires OOM / impossible state | **No** | Theoretical only |
+| Only via `library_app_main()` / Exchange | **No** | Defense-in-depth only |
+| Requires an impossible state | **No** | Theoretical only |
+| Allocator exhaustion | **Yes** if APDU sequences can fill it | An unchecked allocation result is a finding |
 | Guarded by upstream validation | **No** | False positive |
-| Rust: panics on malformed (not bypass) | **No** (availability only) | Not exploitable |
+| Rust: panics on malformed (not bypass) | **No** (availability only) | Not exploitable; still report as 🟨 WARNING, since panicking on invalid input is forbidden |
 
 ---
 
@@ -465,12 +469,12 @@ APDU IN (CLA=0xE0, INS=0xXX, P1, P2, data)
 
 | False Positive Pattern | Why It's Not a Bug |
 |------------------------|-------------------|
-| `mem_alloc` returns → "memory leak" | SDK pool allocator, reset between operations |
-| `handle_check_address` OOB → "CRITICAL" | Only callable from Exchange (trusted) |
+| `mem_alloc` returns → "memory leak" | Not a bug if the allocator is reset between operations, though freeing each allocation is preferred; without a reset, report it |
+| `handle_check_address` OOB → "CRITICAL" | Only callable from Exchange (trusted): a 🟨 WARNING, not CRITICAL |
 | Incremental parser OOB → "overflow" | Guarded by feed-based `can_decode()` check |
-| Recursive types → "stack overflow" | Cycle detection exists (membership check) |
+| Recursive types → "stack overflow" | Not a bug if the recursion depth is bounded independently of the payload; cycle detection alone does not bound stack use |
 | Union access → "type confusion" | State discriminant (`appState`) checked |
-| Swap flows missing validation → "bypass" | Exchange app is trusted |
+| Exchange-only callbacks (`check_address`, `get_printable_amount`) without input validation → "bypass" | Their inputs come from the trusted Exchange app; a transaction signed in swap mode still arrives by APDU and must match the confirmed swap |
 | `CX_ASSERT` / `LEDGER_ASSERT` → "crash" | Intentional abort on crypto failure |
 | Plugin `RESULT_ERROR` → "continues" | Checked by caller (`result_check()`) |
 | Rust `Vec` growth → "OOM" | Bounded by `MAX_TRANSACTION_LEN` check |
@@ -494,12 +498,14 @@ Only include findings **confirmed by evidence** (sanitizer output, demonstrable 
 
 A finding is a **false positive** if ANY of:
 - The triggering input is validated/bounded by caller before reaching vulnerable code
-- The code path is unreachable from any APDU (only from trusted Exchange app)
 - The state required is impossible to reach via normal or malicious APDU sequences
-- The "vulnerability" results in **rejection/crash** (not bypass) — feature broken, not security broken
 - The allocated buffer is always large enough due to compile-time or SDK guarantees
 - The Rust type system (borrow checker, bounds checks) prevents the condition at compile time
-- The HMAC/PKI check upstream prevents attacker-controlled input from reaching the code
+- The HMAC/PKI check upstream prevents attacker-controlled input from reaching the code (if a certificate holder could still send it, keep it at reduced severity, see 5.2)
+
+A finding is **not exploitable but still reported as 🟨 WARNING** if:
+- The code path is unreachable from any APDU (only from the trusted Exchange app): defense in depth
+- It only rejects valid input or crashes on invalid input, with no bypass
 
 ---
 
@@ -519,7 +525,7 @@ A finding is a **false positive** if ANY of:
 ### 7.2 Exploitability Factors
 
 Rate each confirmed finding on:
-- **Attack vector**: APDU (remote via host) vs library_main (trusted only)
+- **Attack vector**: APDU (remote via host) vs library_app_main (trusted only)
 - **Complexity**: Single APDU vs multi-step state setup
 - **User interaction**: None (transparent) vs requires user approval of corrupt display
 - **Impact**: What does the attacker gain? (key leak, wrong address, wrong amount, crash)
@@ -548,8 +554,8 @@ int main(void) {
 
 ```bash
 clang -fsanitize=address,undefined -fno-omit-frame-pointer -g \
-    test_case.c target.c [stubs.c] -o test_case
-./test_case
+    test_finding.c [stubs.c] -o test_finding
+./test_finding
 ```
 
 A crash or sanitizer diagnostic **confirms** the finding. If the test does not trigger, discard or refine.
@@ -565,7 +571,7 @@ fn test_truncation_exploit() {
 }
 ```
 
-Run: `cargo +nightly miri test` (unsafe) or `cargo test` (logic bugs)
+Copy the code under test into a host crate in the working folder, since the app crate only builds for devices, then run `cargo +nightly miri test` (unsafe) or `cargo test` (logic bugs)
 
 ### 8.3 Python APDU PoC (Ragger/Speculos)
 
@@ -590,7 +596,7 @@ def test_vulnerability_poc(backend: SpeculosBackend):
 
 | Severity | Required Evidence |
 |----------|-------------------|
-| CRITICAL | Mandatory ASan/Miri PoC + APDU PoC on Speculos |
+| CRITICAL | APDU PoC on Speculos showing the impact, plus an ASan/Miri PoC for memory-safety bugs |
 | HIGH | ASan/Miri PoC OR APDU PoC (at least one) |
 | WARNING | Source-level justification sufficient |
 | INFO | Observation only |
@@ -660,7 +666,7 @@ If code implements behavior X but documentation says Y, or tests validate Z:
 > **False positives eliminated**: N/M
 
 ## 🟥 CRITICAL (N)
-## 🟧 HIGH (N) — all APDU-reachable
+## 🟧 HIGH (N)
 ## 🟨 WARNING (N)
 ## ℹ️ INFO (N)
 
@@ -700,7 +706,7 @@ If code implements behavior X but documentation says Y, or tests validate Z:
 
 ### 10.3 Verdict Criteria
 
-- **FAIL**: At least one CRITICAL or HIGH finding that is APDU-reachable
+- **FAIL**: At least one CRITICAL or HIGH finding
 - **PASS with observations**: Only WARNING/INFO findings
 - **PASS**: No findings
 
@@ -743,28 +749,14 @@ If overall quality is too low (excessive complexity, many warnings, significant 
 
 ---
 
-## Appendix C: Docker Environment for PoC
+## Appendix C: Running an APDU PoC on Speculos
+
+Work in the Docker environment of the loaded Ledger rules ("Ledger Build and Test Environment", `instructions/ENVIRONMENT.instructions.md`), with `<test_dir>` the test directory from `ledger_app.toml`:
 
 ```bash
-# Discover available image
-docker images | grep ledger
-
-# C app build + test
-docker run --rm -v $(pwd):/app ghcr.io/ledgerhq/ledger-app-builder/ledger-app-dev-tools:latest \
-  bash -c "source /opt/venv/bin/activate && \
-           pip install -r tests/requirements.txt && \
-           BOLOS_SDK=\$NANOX_SDK make -j && \
-           pytest tests/ --device nanox -k test_poc"
-
-# Rust app build + test
-docker run --rm -v $(pwd):/app ghcr.io/ledgerhq/ledger-app-builder/ledger-app-dev-tools:latest \
-  bash -c "source /opt/venv/bin/activate && \
-           pip install -r tests/requirements.txt && \
-           cargo ledger build nanox && \
-           pytest tests/ --device nanox -k test_poc"
-
-# ASan harness (host-side, not device)
-clang -fsanitize=address,undefined -fno-omit-frame-pointer -g test_poc.c -o test_poc
-./test_poc
+source /opt/venv/bin/activate && pip install -r <test_dir>/requirements.txt
+BOLOS_SDK=$NANOX_SDK make -j    # C app
+cargo ledger build nanox        # Rust app
+pytest <test_dir>/ --device nanox -k test_poc
 ```
 
