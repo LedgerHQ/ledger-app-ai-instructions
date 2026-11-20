@@ -36,7 +36,7 @@ These rules apply to all embedded code (C and Rust) running on Ledger devices.
 
 - Ensure sensitive data such as private keys are explicitly cleaned from memory as soon as possible after usage.
 - Secrets derived from the seed must not be stored, exported, or shown to the user.
-- Cryptographic calls must be made through the SDK's functions, not implemented in application code.
+- Use the SDK's cryptographic primitives (hashes, curve operations, signatures, random numbers); never reimplement them or take them from third-party libraries. Build protocol-specific schemes, such as a chain's own hash function, on top of these primitives.
 
 ## APDU Handling
 

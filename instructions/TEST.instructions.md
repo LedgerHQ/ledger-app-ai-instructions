@@ -24,7 +24,7 @@ Python is used exclusively for testing Ledger device applications — it is not 
 
 ### Configuration
 
-- The test directory path is defined in `ledger_app.toml` under `[pytest.standalone].directory`. Do NOT hardcode it.
+- The test directory path is defined in `ledger_app.toml`, under `[pytest.<name>].directory` (for example `[pytest.standalone]`) or, in older manifests, `[tests].pytest_directory`. Do NOT hardcode it.
 - Every device in `[app].devices` must have functional tests.
 - The `requirements.txt` is located at `<test_dir>/requirements.txt`.
 - In the Docker environment, always start with `source /opt/venv/bin/activate && pip install -r <test_dir>/requirements.txt` before running pytest.
