@@ -71,14 +71,15 @@ For each INS handler, trace the call chain to leaf functions. Priority:
 | Entity | Trust Level | Controls |
 |--------|------------|----------|
 | **Ledger firmware/OS** | Fully trusted | SDK syscalls, app isolation, memory protection |
-| **Exchange app** | Trusted (Ledger-signed) | Calls `library_app_main()` / `os_lib_call` for swap |
+| **Exchange app** | Trusted code (Ledger-signed), but forwards untrusted input | Calls `library_app_main()` / `os_lib_call` for swap |
 | **PKI certificates** | Semi-trusted | Issued by Ledger backend, per-usage scoped |
 | **Companion app / host** | **UNTRUSTED** | Sends APDUs, can be malicious |
 | **Blockchain data** | **UNTRUSTED** | RLP, scripts, calldata, instructions — attacker-controlled |
 
 ### 1.2 Key Implications
 
-- **APDUs are the primary attack surface.** Any bug reachable only from `library_app_main()` (Exchange app) is defense-in-depth only — NOT exploitable by external attacker.
+- **APDUs are the primary attack surface**, directly or through the Exchange app.
+- **Swap callbacks are reachable from the host.** The Exchange app calls them only after verifying the partner's signature on the swap payload, but it vouches only for the Ledger-signed `coin_configuration`. The host chooses `address_parameters` (the derivation path) and the fees, unsigned, and gets signed addresses and amounts of its choice by requesting a quote. Treat every other callback input as attacker-controlled.
 - **PKI-gated operations** require a Ledger-issued certificate. Bugs behind PKI checks have reduced exploitability.
 - **Plugins/custom programs** receive untrusted calldata — high-priority targets.
 - **All wire-format data is attacker-controlled** — all parsing must be robust.
@@ -91,7 +92,7 @@ The attacker is the **companion app / host** sending APDUs to the device over US
 - Provide forged token/program info (unless PKI-validated)
 - Interleave commands to exploit state machines
 - Skip or replay multi-chunk steps
-- **Cannot** call `library_app_main()` (only Exchange app can)
+- Reach the swap callbacks through the Exchange app with any partner-signed quote, choosing `address_parameters` and the fees
 - **Cannot** forge PKI certificates (unless Ledger infra is compromised)
 
 ### 1.4 Privilege Verification
@@ -118,6 +119,7 @@ For each handler, document:
 - Sign transaction handlers (all archetypes)
 - Sign message / off-chain message handlers
 - Provide token/NFT/trusted info (before PKI validation)
+- Swap callbacks (`check_address`, `get_printable_amount`, `create_transaction_parameters`)
 
 **MEDIUM RISK** (simpler parsing, often PKI-gated):
 - Set external plugin / provide instruction descriptor
@@ -415,6 +417,8 @@ empirically rather than re-reading (see Phase 8.5).
 | **UI bypass without validation** | Skips display but doesn't validate swap params |
 | **BSS corruption (Rust)** | Heap allocation in check_address/get_printable_amount |
 | **Fee manipulation** | Swap fee ≠ actual transaction fee |
+| **Unchecked address check** | `check_address` accepts an address the device did not derive from `address_parameters` |
+| **Callback input overflow** | `address_parameters`, amount or fee parsed without bounds checks |
 
 ### 4.8 Code Quality Items Impacting Security
 
@@ -442,7 +446,7 @@ APDU IN (CLA=0xE0, INS=0xXX, P1, P2, data)
 ### 5.1 Reachability Questions
 
 1. **Which INS code reaches this code?** Follow the call graph backward.
-2. **Is there a `library_app_main()` / swap-only path?** If yes → NOT exploitable externally.
+2. **Is the code reachable through a swap callback (`library_app_main()`)?** The host reaches it through the Exchange app: only the Ledger-signed `coin_configuration` is trusted.
 3. **Are there guards (PKI check, settings flag, state requirement) before the vulnerable code?**
 4. **What state must be set up first?** (prior APDUs needed to reach the state)
 5. **Can the attacker actually provide the triggering input via APDU data?**
@@ -455,7 +459,7 @@ APDU IN (CLA=0xE0, INS=0xXX, P1, P2, data)
 | Direct APDU handler, no guards | **Yes** | High |
 | APDU handler behind PKI check | **Yes** (reduced) | Medium (needs cert) |
 | APDU handler behind settings flag | **Yes** (conditional) | Medium (needs user enable) |
-| Only via `library_app_main()` / Exchange | **No** | Defense-in-depth only |
+| Swap callback via the Exchange app | **Yes**, with any partner-signed quote | High; defense-in-depth only if triggered by `coin_configuration` alone |
 | Requires an impossible state | **No** | Theoretical only |
 | Allocator exhaustion | **Yes** if APDU sequences can fill it | An unchecked allocation result is a finding |
 | Guarded by upstream validation | **No** | False positive |
@@ -470,11 +474,10 @@ APDU IN (CLA=0xE0, INS=0xXX, P1, P2, data)
 | False Positive Pattern | Why It's Not a Bug |
 |------------------------|-------------------|
 | `mem_alloc` returns → "memory leak" | Not a bug if the allocator is reset between operations, though freeing each allocation is preferred; without a reset, report it |
-| `handle_check_address` OOB → "CRITICAL" | Only callable from Exchange (trusted): a 🟨 WARNING, not CRITICAL |
+| Swap callback OOB on `coin_configuration` → "CRITICAL" | Ledger-signed and verified by the Exchange app: a 🟨 WARNING, not CRITICAL |
 | Incremental parser OOB → "overflow" | Guarded by feed-based `can_decode()` check |
 | Recursive types → "stack overflow" | Not a bug if the recursion depth is bounded independently of the payload; cycle detection alone does not bound stack use |
 | Union access → "type confusion" | State discriminant (`appState`) checked |
-| Exchange-only callbacks (`check_address`, `get_printable_amount`) without input validation → "bypass" | Their inputs come from the trusted Exchange app; a transaction signed in swap mode still arrives by APDU and must match the confirmed swap |
 | `CX_ASSERT` / `LEDGER_ASSERT` → "crash" | Intentional abort on crypto failure |
 | Plugin `RESULT_ERROR` → "continues" | Checked by caller (`result_check()`) |
 | Rust `Vec` growth → "OOM" | Bounded by `MAX_TRANSACTION_LEN` check |
@@ -504,7 +507,7 @@ A finding is a **false positive** if ANY of:
 - The HMAC/PKI check upstream prevents attacker-controlled input from reaching the code (if a certificate holder could still send it, keep it at reduced severity, see 5.2)
 
 A finding is **not exploitable but still reported as 🟨 WARNING** if:
-- The code path is unreachable from any APDU (only from the trusted Exchange app): defense in depth
+- Only Ledger-signed input can trigger it, such as a swap callback's `coin_configuration`: defense in depth
 - It only rejects valid input or crashes on invalid input, with no bypass
 
 ---
@@ -525,7 +528,7 @@ A finding is **not exploitable but still reported as 🟨 WARNING** if:
 ### 7.2 Exploitability Factors
 
 Rate each confirmed finding on:
-- **Attack vector**: APDU (remote via host) vs library_app_main (trusted only)
+- **Attack vector**: APDU (remote via host, directly or through the Exchange app) vs Ledger-signed input only
 - **Complexity**: Single APDU vs multi-step state setup
 - **User interaction**: None (transparent) vs requires user approval of corrupt display
 - **Impact**: What does the attacker gain? (key leak, wrong address, wrong amount, crash)
